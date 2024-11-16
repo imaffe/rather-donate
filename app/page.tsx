@@ -92,7 +92,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <header className="fixed w-full top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center justify-between">
-          <div className="font-bold">RatherDonate</div>
+          <div className="font-bold">ProposalHub</div>
           <ConnectWallet />
         </div>
       </header>
