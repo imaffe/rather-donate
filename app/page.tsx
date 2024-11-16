@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ConnectWallet } from "@/components/ConnectWallet";
+import { Button } from "../components/ui/button";
+import { ConnectWallet } from "../components/ConnectWallet";
 import { useWeb3React } from "@web3-react/core";
-import { ProposalCard } from "@/components/ProposalCard";
-import { useProposalManager } from "@/hooks/useProposalManager";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProposalCard } from "../components/ProposalCard";
+import { useProposalManager } from "./hooks/useProposalManager";
+import { Skeleton } from "../components/ui/skeleton";
 
 export default function Home() {
   const router = useRouter();

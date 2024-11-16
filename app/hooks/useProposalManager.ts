@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useWeb3React } from "@web3-react/core";
 import { Contract } from "ethers";
-import { CONTRACT_ADDRESSES } from "@/config/contracts";
-import ProposalManagerABI from "@/contracts/ProposalManager.json";
-import { Proposal } from "@/types";
+import { CONTRACT_ADDRESSES } from "../config/contracts";
+import ProposalManagerABI from "../contracts/ProposalManager.json";
+import { Proposal } from "../types";
 
 export function useProposalManager() {
   const { provider, account } = useWeb3React();

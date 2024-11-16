@@ -3,7 +3,8 @@
   "scripts": {
     "deploy:sepolia": "hardhat ignition deploy ignition/modules/ProposalManager.ts --network sepolia",
     "compile": "hardhat compile",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "postcompile": "cp artifacts/contracts/ProposalManager.sol/ProposalManager.json ../app/contracts/ProposalManager.json"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^0.15.0",
