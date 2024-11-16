@@ -98,13 +98,14 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto p-6 pt-20">
-        <div className="flex justify-between items-center mb-8">
+        <div className="space-y-4 mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <div className="flex items-center gap-4">
-              <Button onClick={() => router.push("/proposals/create")}>
-                Create Proposal
-              </Button>
-          </div>
+          <Button 
+            onClick={() => router.push("/proposals/create")}
+            className="w-fit"
+          >
+            Create Proposal
+          </Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
