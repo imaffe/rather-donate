@@ -40,6 +40,14 @@ export function ConnectWallet() {
   const handleConnect = async (connector: any) => {
     try {
       setConnecting(true);
+      if ((window as any).ethereum) {
+
+
+        await (window as any).ethereum.request({
+          method: 'wallet_requestPermissions',
+          params: [{ eth_accounts: {} }],
+        });
+      }
       await activate(connector);
       localStorage.setItem('isWalletConnected', 'true');
     } catch (error) {
@@ -54,15 +62,7 @@ export function ConnectWallet() {
       deactivate();
       localStorage.removeItem('isWalletConnected');
       
-      // If using MetaMask, we can also disconnect from the site
-      if ((window as any).ethereum) {
 
-        
-        await (window as any).ethereum.request({
-          method: 'wallet_requestPermissions',
-          params: [{ eth_accounts: {} }],
-        });
-      }
     } catch (error) {
       console.error('Error on disconnect:', error);
     }
