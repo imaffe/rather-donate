@@ -1,197 +1,195 @@
 "use client";
 
 import { useState } from "react";
+import { useWeb3React } from "@web3-react/core";
+import { Contract } from "ethers";
 import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import { Textarea } from "../../../components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group";
+import { CONTRACT_ADDRESSES } from "../../config/contracts";
+import ProposalManagerABI from "../../contracts/ProposalManager.json";
 import { BurnOption } from "@/types";
 
-const formSchema = z.object({
-  name: z.string().min(3, "Proposal name must be at least 3 characters"),
-  content: z.string().min(10, "Content must be at least 10 characters"),
-  applicantName: z.string().min(2, "Name must be at least 2 characters"),
-  applicantAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
-  burnOption: z.enum(["BACK", "GCC", "ADDRESS"]),
-  burnAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address").optional(),
-});
-
-export default function CreateProposal() {
+export default function CreateProposalPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      content: "",
-      applicantName: "",
-      applicantAddress: "",
-      burnOption: "BACK",
-    },
+  const { provider, account } = useWeb3React();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    content: "",
+    burnOption: BurnOption.GCC,
+    burnAddress: "",
+    deliverables: [""] // At least one deliverable is required by contract
   });
 
-  const burnOption = form.watch("burnOption");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!provider || !account) return;
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    // TODO: Implement actual proposal creation
-    console.log(values);
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/dashboard");
-    }, 1000);
-  }
+    try {
+      setLoading(true);
+      const contract = new Contract(
+        CONTRACT_ADDRESSES.PROPOSAL_MANAGER,
+        ProposalManagerABI.abi,
+        provider.getSigner()
+      );
+
+      // Validate burn address if burnOption is ADDRESS
+      const burnAddress = formData.burnOption === BurnOption.ADDRESS 
+        ? formData.burnAddress 
+        : "0x0000000000000000000000000000000000000000";
+
+      // Filter out empty deliverables
+      const deliverables = formData.deliverables.filter(d => d.trim() !== "");
+      if (deliverables.length === 0) {
+        throw new Error("At least one deliverable is required");
+      }
+
+      const tx = await contract.createProposal(
+        formData.name,
+        formData.content,
+        formData.burnOption,
+        burnAddress,
+        deliverables
+      );
+
+      await tx.wait();
+      router.push("/"); // Redirect to home page after success
+    } catch (error) {
+      console.error("Error creating proposal:", error);
+      // You might want to add proper error handling/display here
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addDeliverable = () => {
+    setFormData(prev => ({
+      ...prev,
+      deliverables: [...prev.deliverables, ""]
+    }));
+  };
+
+  const updateDeliverable = (index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      deliverables: prev.deliverables.map((d, i) => i === index ? value : d)
+    }));
+  };
+
+  const removeDeliverable = (index: number) => {
+    if (formData.deliverables.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        deliverables: prev.deliverables.filter((_, i) => i !== index)
+      }));
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6">
-      <div className="mx-auto max-w-2xl">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="mb-6"
-        >
-          ← Back to Dashboard
-        </Button>
+    <div className="container mx-auto p-6 pt-20">
+      <h1 className="text-3xl font-bold mb-8">Create Proposal</h1>
+      <div className="max-w-2xl">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <Label htmlFor="name">Proposal Name</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                setFormData(prev => ({ ...prev, name: e.target.value }))}
+              required
+            />
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Create New Proposal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Proposal Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter proposal name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+          <div>
+            <Label htmlFor="content">Proposal Content</Label>
+            <Textarea
+              id="content"
+              value={formData.content}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => 
+                setFormData(prev => ({ ...prev, content: e.target.value }))}
+              required
+              className="min-h-[200px]"
+            />
+          </div>
+
+          <div>
+            <Label>Burn Option</Label>
+            <RadioGroup
+              value={formData.burnOption.toString()}
+              onValueChange={(value: string) => 
+                setFormData(prev => ({ ...prev, burnOption: parseInt(value) }))}
+              className="flex flex-col space-y-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value={BurnOption.GCC.toString()} id="gcc" />
+                <Label htmlFor="gcc">Burn GCC</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value={BurnOption.BACK.toString()} id="back" />
+                <Label htmlFor="back">Return to Donors</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value={BurnOption.ADDRESS.toString()} id="address" />
+                <Label htmlFor="address">Burn Address</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {formData.burnOption === BurnOption.ADDRESS && (
+            <div>
+              <Label htmlFor="burnAddress">Burn Address</Label>
+              <Input
+                id="burnAddress"
+                value={formData.burnAddress}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                  setFormData(prev => ({ ...prev, burnAddress: e.target.value }))}
+                placeholder="0x..."
+                required
+              />
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <Label>Deliverables</Label>
+            {formData.deliverables.map((deliverable, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  value={deliverable}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    updateDeliverable(index, e.target.value)}
+                  placeholder={`Deliverable ${index + 1}`}
+                  required
                 />
-
-                <FormField
-                  control={form.control}
-                  name="content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Content</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe your proposal"
-                          className="min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Applicant Information</h3>
-                  <FormField
-                    control={form.control}
-                    name="applicantName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter your name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="applicantAddress"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ethereum Address</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0x..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="burnOption"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Burn Option</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select burn option" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="BACK">Back</SelectItem>
-                          <SelectItem value="GCC">GCC</SelectItem>
-                          <SelectItem value="ADDRESS">Address</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {burnOption === "ADDRESS" && (
-                  <FormField
-                    control={form.control}
-                    name="burnAddress"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Burn Address</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0x..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {formData.deliverables.length > 1 && (
+                  <Button 
+                    type="button"
+                    variant="destructive"
+                    onClick={() => removeDeliverable(index)}
+                  >
+                    Remove
+                  </Button>
                 )}
+              </div>
+            ))}
+            <Button type="button" onClick={addDeliverable}>
+              Add Deliverable
+            </Button>
+          </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create Proposal"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+          <div className="flex gap-4">
+            <Button type="submit" disabled={loading}>
+              {loading ? "Creating..." : "Create Proposal"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => router.back()}>
+              Cancel
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );
