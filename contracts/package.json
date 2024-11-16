@@ -1,8 +1,17 @@
 {
   "name": "hardhat-project",
+  "scripts": {
+    "deploy:sepolia": "hardhat ignition deploy ignition/modules/ProposalManager.ts --network sepolia",
+    "compile": "hardhat compile",
+    "test": "hardhat test"
+  },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^0.15.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "hardhat": "^2.19.4"
+    "@types/node": "^20.11.0",
+    "dotenv": "^16.4.1",
+    "hardhat": "^2.19.4",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.1.0"
