@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract ProposalManager is Ownable, ReentrancyGuard {
-    using Counters for Counters.Counter;
-    Counters.Counter private _proposalIds;
+    uint256 private _currentProposalId;
 
     enum BurnOption { GCC, BACK, ADDRESS }
     enum ProposalStatus { ACTIVE, VOTING, COMPLETED, CANCELLED }
@@ -60,7 +58,7 @@ contract ProposalManager is Ownable, ReentrancyGuard {
     }
 
     modifier proposalExists(uint256 proposalId) {
-        require(proposalId > 0 && proposalId <= _proposalIds.current(), "Invalid proposal");
+        require(proposalId > 0 && proposalId <= _currentProposalId, "Invalid proposal");
         _;
     }
 
@@ -81,8 +79,8 @@ contract ProposalManager is Ownable, ReentrancyGuard {
             require(burnAddress != address(0), "Burn address required");
         }
 
-        _proposalIds.increment();
-        uint256 newProposalId = _proposalIds.current();
+        _currentProposalId++;
+        uint256 newProposalId = _currentProposalId;
 
         proposals[newProposalId] = Proposal({
             id: newProposalId,
@@ -105,7 +103,7 @@ contract ProposalManager is Ownable, ReentrancyGuard {
         return newProposalId;
     }
 
-    function donateToProposal(uint256 proposalId) external payable proposalExists nonReentrant {
+    function donateToProposal(uint256 proposalId) external payable proposalExists(proposalId) nonReentrant {
         require(proposals[proposalId].status == ProposalStatus.ACTIVE, "Proposal not active");
         require(msg.value >= MIN_DONATION, "Donation too small");
 
@@ -153,7 +151,7 @@ contract ProposalManager is Ownable, ReentrancyGuard {
         emit VoteCast(proposalId, msg.sender, approve);
     }
 
-    function distributeByAdmin(uint256 proposalId) external onlyOwner proposalExists {
+    function distributeByAdmin(uint256 proposalId) external onlyOwner proposalExists(proposalId) {
         Proposal storage proposal = proposals[proposalId];
         require(proposal.status == ProposalStatus.VOTING, "Not in voting phase");
         
@@ -218,7 +216,7 @@ contract ProposalManager is Ownable, ReentrancyGuard {
     }
 
     function getProposalCount() external view returns (uint256) {
-        return _proposalIds.current();
+        return _currentProposalId;
     }
 
     receive() external payable {}
